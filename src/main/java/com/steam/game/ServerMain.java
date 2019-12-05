@@ -1,5 +1,7 @@
 package com.steam.game;
 
+import com.steam.game.decoder.MessageDecoder;
+import com.steam.game.encoder.MessageEncoder;
 import com.steam.game.handler.MessageHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -27,11 +29,13 @@ public class ServerMain {
         bootstrap.channel(NioServerSocketChannel.class);
         bootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
             @Override
-            protected void initChannel(SocketChannel channel) throws Exception{
+            protected void initChannel(SocketChannel channel) {
                 channel.pipeline().addLast(
                         new HttpServerCodec(),
                         new HttpObjectAggregator(65535),
                         new WebSocketServerProtocolHandler("/websocket"),
+                        new MessageDecoder(), //自定义消息解码器
+                        new MessageEncoder(), //自定义消息编码器
                         new MessageHandler()
                 );
             }
