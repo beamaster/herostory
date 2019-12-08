@@ -9,4 +9,5 @@ public class UserEntity {
     private int userId;
 
     private String heroAvatar;
+
 }
