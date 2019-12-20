@@ -7,12 +7,12 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+
+@Slf4j
 public class  MessageEncoder extends ChannelOutboundHandlerAdapter {
 
-    private static Logger logger = LoggerFactory.getLogger(MessageEncoder.class);
 
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
@@ -22,19 +22,26 @@ public class  MessageEncoder extends ChannelOutboundHandlerAdapter {
         }
 
 
+
+
+
         int msgCode = -1;
 
         if(msg instanceof MessageProtocol.UserEntryResult){
-
             msgCode = MessageProtocol.MsgCode.USER_ENTRY_RESULT_VALUE;
         }else if (msg instanceof MessageProtocol.WhoElseIsHereResult){
             msgCode = MessageProtocol.MsgCode.WHO_ELSE_IS_HERE_RESULT_VALUE;
+        }else if (msg instanceof MessageProtocol.UserMoveToResult){
+            msgCode = MessageProtocol.MsgCode.USER_MOVE_TO_RESULT_VALUE;
+        }else if (msg instanceof MessageProtocol.UserQuitResult){
+            msgCode = MessageProtocol.MsgCode.USER_QUIT_RESULT_VALUE;
         }else {
-            logger.info("无法识别的消息类型，myClazz：{}",msg.getClass().getName());
+            log.info("无法识别的消息类型，myClazz：{}",msg.getClass().getName());
             return;
         }
 
-        byte[] byteArray = ((MessageProtocol.UserEntryResult) msg).toByteArray();
+//        byte[] byteArray = ((MessageProtocol.UserEntryResult) msg).toByteArray();
+        byte[] byteArray = ((GeneratedMessageV3) msg).toByteArray();//encode所有消息的父类，否则就不完整
 
         ByteBuf byteBuf = ctx.alloc().buffer();//alloc？
         byteBuf.writeShort(0);

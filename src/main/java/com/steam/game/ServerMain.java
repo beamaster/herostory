@@ -33,13 +33,15 @@ public class ServerMain {
                 channel.pipeline().addLast(
                         new HttpServerCodec(),
                         new HttpObjectAggregator(65535),
-                        new WebSocketServerProtocolHandler("/websocket"),
+                        new WebSocketServerProtocolHandler("/websocket"),// WebSocket 协议处理器, 在这里处理握手、ping、pong 等消息
                         new MessageDecoder(), //自定义消息解码器
                         new MessageEncoder(), //自定义消息编码器
-                        new MessageHandler()
+                        new MessageHandler()// 自定义的消息处理器
                 );
             }
         });
+
+
 
         try {
             ChannelFuture future = bootstrap.bind(12345).sync();
@@ -51,6 +53,4 @@ public class ServerMain {
             e.printStackTrace();
         }
     }
-
-
 }

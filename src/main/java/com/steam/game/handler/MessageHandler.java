@@ -1,25 +1,21 @@
 package com.steam.game.handler;
 
-import com.steam.game.encoder.MessageEncoder;
 import com.steam.game.entity.UserEntity;
 import com.steam.game.protocol.MessageProtocol;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
-import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
+import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.GlobalEventExecutor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
 
-
+@Slf4j
 public class MessageHandler extends SimpleChannelInboundHandler<Object> {
 
-    private static Logger logger = LoggerFactory.getLogger(MessageHandler.class);
     /**
      * 客户端信道数组，必须用static，否则无法实现群发
      * 全体广播
@@ -38,9 +34,31 @@ public class MessageHandler extends SimpleChannelInboundHandler<Object> {
         _channelGroup.add(ctx.channel());
     }
 
+    /**
+     * 用户离开广播消息
+     * @param ctx
+     * @throws Exception
+     */
+    @Override
+    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+        super.handlerRemoved(ctx);
+        _channelGroup.remove(ctx.channel());
+
+        Integer removeTargetUserId = (Integer) ctx.channel().attr(AttributeKey.valueOf("userId")).get();
+        if(null == removeTargetUserId) return;
+
+        _userMap.remove(removeTargetUserId);
+        MessageProtocol.UserQuitResult.Builder resultBuilder = MessageProtocol.UserQuitResult.newBuilder();
+        resultBuilder.setQuitUserId(removeTargetUserId);
+
+        MessageProtocol.UserQuitResult newResult = resultBuilder.build();
+        _channelGroup.writeAndFlush(newResult);
+
+        log.info("");
+    }
+
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-        logger.info("get msg from client:"+msg);
 
 
         //入场之后群发
@@ -64,7 +82,7 @@ public class MessageHandler extends SimpleChannelInboundHandler<Object> {
             _userMap.put(userId,userEntity);
 
 
-            //构建消息结果病发送
+            //构建消息结果并发送
             MessageProtocol.UserEntryResult newResult = resultBuilder.build();
             _channelGroup.writeAndFlush(newResult);
         }else if(msg instanceof MessageProtocol.WhoElseIsHereCmd){//还有谁？
@@ -80,10 +98,21 @@ public class MessageHandler extends SimpleChannelInboundHandler<Object> {
                 resultBuilder.addUserInfo(userInfoBuilder);
             }
 
-            MessageProtocol.WhoElseIsHereResult newRuslt = resultBuilder.build();
-            ctx.writeAndFlush(newRuslt);
+            MessageProtocol.WhoElseIsHereResult newResult = resultBuilder.build();
+            ctx.writeAndFlush(newResult);
+        }else if(msg instanceof MessageProtocol.UserMoveToCmd){
+            //获取当前移动用户Id
+            Integer currentMoveToUserId = (Integer) ctx.channel().attr(AttributeKey.valueOf("userId")).get();
+            if (null == currentMoveToUserId) return ;
+
+            MessageProtocol.UserMoveToCmd cmd = (MessageProtocol.UserMoveToCmd)msg;
+            MessageProtocol.UserMoveToResult.Builder resultBuilder = MessageProtocol.UserMoveToResult.newBuilder();
+            resultBuilder.setMoveUserId(currentMoveToUserId);
+            resultBuilder.setMoveToPosX(cmd.getMoveToPosX());
+            resultBuilder.setMoveToPosY(cmd.getMoveToPosY());
+            MessageProtocol.UserMoveToResult newResult = resultBuilder.build();
+            _channelGroup.writeAndFlush(newResult);
         }
-            //
     }
 
     /*
