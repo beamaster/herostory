@@ -1,4 +1,4 @@
-package com.steam.game.encoder;
+package com.steam.game.decoder;
 
 import com.google.protobuf.GeneratedMessageV3;
 import com.steam.game.protocol.MessageProtocol;
@@ -20,9 +20,6 @@ public class  MessageEncoder extends ChannelOutboundHandlerAdapter {
             super.write(ctx, msg, promise);
             return;
         }
-
-
-
 
 
         int msgCode = -1;
